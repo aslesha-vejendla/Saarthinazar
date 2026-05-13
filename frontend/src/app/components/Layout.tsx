@@ -1,10 +1,7 @@
 import {
   Link,
   Outlet,
-  useLocation,
-  useNavigate
-  useLocation,
-  useNavigate
+  useLocation
 } from "react-router-dom";
 
 import {
@@ -16,25 +13,23 @@ import {
   TrendingUp,
   Settings as SettingsIcon,
   Upload,
-  LogOut
+  LogOut,
 } from "lucide-react";
 
-import { useState, useEffect } from "react";
-
-import { useState, useEffect } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 export default function Layout() {
 
   const location = useLocation();
-  const navigate = useNavigate();
-  const [showWelcome, setShowWelcome] = useState(false);
-  const navigate = useNavigate();
-  const [showWelcome, setShowWelcome] = useState(false);
+
+  const [showWelcome, setShowWelcome] =
+    useState(true);
 
   const role =
-    localStorage.getItem("role");
-  const isOwner =
-    role === "owner" || role === "admin" || role === "rashesh";
+    localStorage.getItem("role") || "employee";
 
   const username =
     localStorage.getItem("username") || "User";
@@ -42,8 +37,25 @@ export default function Layout() {
   const profileImage =
     localStorage.getItem("profileImage");
 
-  const isActive = (path: string) =>
-    location.pathname === path;
+  const isOwner =
+
+    role.toLowerCase() === "owner"
+
+    ||
+
+    role.toLowerCase() === "admin"
+
+    ||
+
+    role.toLowerCase() === "rashesh";
+
+  const isActive = (
+    path: string
+  ) => location.pathname === path;
+
+  // =====================================================
+  // NAVIGATION
+  // =====================================================
 
   const navItems = [
 
@@ -51,59 +63,85 @@ export default function Layout() {
       path: "/dashboard",
       label: "Dashboard",
       icon: LayoutDashboard,
-      visible: true
+      visible: true,
     },
 
     {
       path: "/team-usage",
       label: "Team Usage",
       icon: Users,
-      visible: true
+      visible: true,
     },
 
     {
       path: "/alerts",
       label: "Alerts",
       icon: Bell,
-      visible: true
+      visible: true,
     },
 
     {
       path: "/topups",
       label: "Top-Ups",
       icon: Plus,
-      visible: true
+      visible: true,
     },
 
     {
       path: "/invoices",
       label: "Invoices & Payments",
       icon: FileText,
-      visible: true
+      visible: true,
     },
 
     {
       path: "/upload-reports",
       label: "Upload Reports",
       icon: Upload,
-      visible: true
+      visible: true,
     },
 
     {
       path: "/financial",
       label: "Financial Insights",
       icon: TrendingUp,
-      visible: isOwner
+      visible: isOwner,
     },
 
     {
       path: "/master-data",
       label: "Master Data",
       icon: SettingsIcon,
-      visible: isOwner
+      visible: isOwner,
+    },
+  ];
+
+  // =====================================================
+  // WELCOME BANNER
+  // =====================================================
+
+  useEffect(() => {
+
+    if (
+      location.pathname === "/dashboard"
+    ) {
+
+      setShowWelcome(true);
+
+      const timer = setTimeout(() => {
+
+        setShowWelcome(false);
+
+      }, 5000);
+
+      return () => clearTimeout(timer);
     }
 
-  ];
+  }, [location.pathname]);
+
+  // =====================================================
+  // LOGOUT
+  // =====================================================
 
   const handleLogout = () => {
 
@@ -112,47 +150,165 @@ export default function Layout() {
     window.location.href = "/login";
   };
 
-  // Show welcome banner on dashboard load
-  useEffect(() => {
-    if (location.pathname === "/dashboard") {
-      setShowWelcome(true);
-      const timer = setTimeout(() => setShowWelcome(false), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [location.pathname]);
+  // =====================================================
+  // CHANGE PASSWORD
+  // =====================================================
 
-  // Show welcome banner on dashboard load
-  useEffect(() => {
-    if (location.pathname === "/dashboard") {
-      setShowWelcome(true);
-      const timer = setTimeout(() => setShowWelcome(false), 5000);
-      return () => clearTimeout(timer);
+  const handleChangePassword = async () => {
+
+    const oldPassword =
+      prompt("Enter old password");
+
+    const newPassword =
+      prompt("Enter new password");
+
+    if (
+      !oldPassword ||
+      !newPassword
+    ) {
+      return;
     }
-  }, [location.pathname]);
+
+    try {
+
+      const response = await fetch(
+
+        "http://127.0.0.1:8000/auth/change-password",
+
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+
+            old_password:
+              oldPassword,
+
+            new_password:
+              newPassword,
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (response.ok) {
+
+        window.alert(
+          "Password updated successfully"
+        );
+
+      } else {
+
+        window.alert(
+          data.detail ||
+          "Failed to update password"
+        );
+      }
+
+    } catch (error) {
+
+      console.error(error);
+
+      window.alert(
+        "Server error"
+      );
+    }
+  };
+
+  // =====================================================
+  // PROFILE IMAGE
+  // =====================================================
+
+  const handleProfileUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const reader =
+      new FileReader();
+
+    reader.onloadend = () => {
+
+      localStorage.setItem(
+
+        "profileImage",
+
+        reader.result as string
+      );
+
+      window.location.reload();
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  // =====================================================
+  // UI
+  // =====================================================
 
   return (
 
     <div className="min-h-screen bg-slate-100">
 
+      {/* ===================================================== */}
       {/* WELCOME BANNER */}
+      {/* ===================================================== */}
+
       {showWelcome && (
+
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-4 shadow-lg border-b-4 border-purple-800">
+
           <div className="flex items-center justify-between">
+
             <div>
-              <h2 className="text-2xl font-bold">Welcome back, {username}! 👋</h2>
+
+              <h2 className="text-2xl font-bold">
+
+                Welcome back, {username}! 👋
+
+              </h2>
+
               <p className="text-purple-100 text-sm mt-1">
-                {isOwner ? "You have full system access" : "You're logged in as an employee"}
+
+                {isOwner
+
+                  ? "You have full system access"
+
+                  : "You're logged in as Employee"}
+
               </p>
+
             </div>
+
             <button
-              onClick={() => setShowWelcome(false)}
+              onClick={() =>
+                setShowWelcome(false)
+              }
               className="text-purple-100 hover:text-white transition"
             >
               ✕
             </button>
+
           </div>
+
         </div>
       )}
+
+      {/* ===================================================== */}
+      {/* HEADER */}
+      {/* ===================================================== */}
 
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
 
@@ -160,7 +316,9 @@ export default function Layout() {
 
           <div className="flex items-center justify-between">
 
-            {/* LEFT SECTION */}
+            {/* ===================================================== */}
+            {/* LEFT */}
+            {/* ===================================================== */}
 
             <div className="flex items-center gap-10">
 
@@ -180,10 +338,16 @@ export default function Layout() {
 
               </div>
 
+              {/* NAVIGATION */}
+
               <nav className="flex items-center gap-2">
 
                 {navItems
-                  .filter((item) => item.visible)
+
+                  .filter(
+                    (item) => item.visible
+                  )
+
                   .map((item) => (
 
                     <Link
@@ -191,7 +355,9 @@ export default function Layout() {
                       to={item.path}
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 text-sm font-medium ${
                         isActive(item.path)
+
                           ? "bg-purple-100 text-purple-700 shadow-sm"
+
                           : "text-slate-600 hover:bg-slate-100"
                       }`}
                     >
@@ -210,7 +376,9 @@ export default function Layout() {
 
             </div>
 
-            {/* RIGHT SECTION */}
+            {/* ===================================================== */}
+            {/* RIGHT */}
+            {/* ===================================================== */}
 
             <div className="flex items-center gap-5">
 
@@ -230,7 +398,7 @@ export default function Layout() {
 
               </div>
 
-              {/* PROFILE DROPDOWN */}
+              {/* PROFILE */}
 
               <div className="relative group">
 
@@ -248,7 +416,9 @@ export default function Layout() {
 
                     ) : (
 
-                      username.charAt(0).toUpperCase()
+                      username
+                        .charAt(0)
+                        .toUpperCase()
 
                     )}
 
@@ -272,9 +442,8 @@ export default function Layout() {
 
                 </button>
 
-                {/* DROPDOWN MENU */}
+                {/* DROPDOWN */}
 
-                <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                 <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
 
                   <div className="p-4 border-b">
@@ -293,7 +462,7 @@ export default function Layout() {
 
                   </div>
 
-                  {/* UPLOAD IMAGE */}
+                  {/* PROFILE IMAGE */}
 
                   <label className="block px-4 py-3 text-sm hover:bg-slate-50 cursor-pointer">
 
@@ -303,28 +472,9 @@ export default function Layout() {
                       type="file"
                       hidden
                       accept="image/*"
-                      onChange={(e) => {
-
-                        const file =
-                          e.target.files?.[0];
-
-                        if (!file) return;
-
-                        const reader =
-                          new FileReader();
-
-                        reader.onloadend = () => {
-
-                          localStorage.setItem(
-                            "profileImage",
-                            reader.result as string
-                          );
-
-                          window.location.reload();
-                        };
-
-                        reader.readAsDataURL(file);
-                      }}
+                      onChange={
+                        handleProfileUpload
+                      }
                     />
 
                   </label>
@@ -332,46 +482,9 @@ export default function Layout() {
                   {/* CHANGE PASSWORD */}
 
                   <button
-                    onClick={() => {
-
-                      const oldPassword =
-                        prompt("Enter old password");
-
-                      const newPassword =
-                        prompt("Enter new password");
-
-                      if (
-                        !oldPassword ||
-                        !newPassword
-                      ) return;
-
-                      fetch(
-                        "http://127.0.0.1:8000/auth/change-password",
-                        {
-                          method: "POST",
-
-                          headers: {
-                            "Content-Type":
-                              "application/json"
-                          },
-
-                          body: JSON.stringify({
-                            old_password:
-                              oldPassword,
-
-                            new_password:
-                              newPassword
-                          })
-                        }
-                      )
-                      .then((res) => res.json())
-                      .then(() => {
-
-                        alert(
-                          "Password updated"
-                        );
-                      });
-                    }}
+                    onClick={
+                      handleChangePassword
+                    }
                     className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50"
                   >
 
@@ -383,7 +496,6 @@ export default function Layout() {
 
                   <button
                     onClick={handleLogout}
-                    title="Logout"
                     className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-500 hover:bg-red-50 rounded-b-2xl"
                   >
 
@@ -404,6 +516,10 @@ export default function Layout() {
         </div>
 
       </header>
+
+      {/* ===================================================== */}
+      {/* MAIN */}
+      {/* ===================================================== */}
 
       <main className="p-6">
 
