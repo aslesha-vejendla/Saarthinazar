@@ -15,83 +15,148 @@ import FinancialInsights from "./pages/FinancialInsights";
 import MasterData from "./pages/MasterData";
 
 import Login from "./pages/Login";
-import Register from "./pages/Register";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
-const token = localStorage.getItem("token");
 
-export const router = createBrowserRouter([
+function AdminRoute({
+  children
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
 
-  {
-    path: "/",
+  const role =
+    localStorage.getItem("role");
 
-    element: token
-      ? <Navigate to="/dashboard" />
-      : <Navigate to="/login" />
-  },
+  const isAdmin =
 
-  {
-    path: "/login",
-    element: <Login />
-  },
+    role === "admin"
 
-  {
-    path: "/register",
-    element: <Register />
-  },
+    ||
 
-  {
-    path: "/",
-    element: (
-      <ProtectedRoute>
-        <App />
-      </ProtectedRoute>
-    ),
+    role === "owner"
 
-    children: [
+    ||
 
-      {
-        path: "/dashboard",
-        element: <Dashboard />
-      },
+    role === "rashesh";
 
-      {
-        path: "/alerts",
-        element: <Alerts />
-      },
+  if (!isAdmin) {
 
-      {
-        path: "/team-usage",
-        element: <TeamUsage />
-      },
-
-      {
-        path: "/topups",
-        element: <TopUps />
-      },
-
-      {
-        path: "/invoices",
-        element: <Invoices />
-      },
-
-      {
-        path: "/upload-reports",
-        element: <UploadReports />
-      },
-
-      {
-        path: "/financial",
-        element: <FinancialInsights />
-      },
-
-      {
-        path: "/master-data",
-        element: <MasterData />
-      }
-
-    ]
+    return (
+      <Navigate
+        to="/dashboard"
+        replace
+      />
+    );
   }
+
+  return children;
+}
+
+
+export const router =
+  createBrowserRouter([
+
+    {
+      path: "/",
+
+      element: (
+
+        localStorage.getItem("token")
+
+          ? <Navigate to="/dashboard" />
+
+          : <Navigate to="/login" />
+      )
+    },
+
+    {
+      path: "/login",
+
+      element: <Login />
+    },
+
+    {
+      path: "/",
+
+      element: (
+
+        <ProtectedRoute>
+
+          <App />
+
+        </ProtectedRoute>
+      ),
+
+      children: [
+
+        {
+          path: "/dashboard",
+
+          element: <Dashboard />
+        },
+
+        {
+          path: "/alerts",
+
+          element: <Alerts />
+        },
+
+        {
+          path: "/team-usage",
+
+          element: <TeamUsage />
+        },
+
+        {
+          path: "/topups",
+
+          element: <TopUps />
+        },
+
+        {
+          path: "/invoices",
+
+          element: <Invoices />
+        },
+
+        {
+          path: "/upload-reports",
+
+          element: <UploadReports />
+        },
+
+        // =====================================
+        // ADMIN ONLY
+        // =====================================
+
+        {
+          path: "/financial",
+
+          element: (
+
+            <AdminRoute>
+
+              <FinancialInsights />
+
+            </AdminRoute>
+          )
+        },
+
+        {
+          path: "/master-data",
+
+          element: (
+
+            <AdminRoute>
+
+              <MasterData />
+
+            </AdminRoute>
+          )
+        }
+
+      ]
+    }
 
 ]);

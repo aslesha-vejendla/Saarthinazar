@@ -1,53 +1,178 @@
-from datetime import date
+from datetime import (
+    datetime,
+    timedelta
+)
 
-from fastapi import APIRouter, Depends
+from fastapi import (
+    APIRouter,
+    Depends,
+    Query
+)
+
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+
 from app.models.invoice import Invoice
 from app.models.team import Team
-from app.services.naukri_rules import create_invoice, invoice_payload, invoice_summary, overage_items, parse_date
 
 router = APIRouter(prefix="/invoices")
 
 
+# =====================================================
+# GET ALL INVOICES
+# =====================================================
+
 @router.get("/")
-def get_invoices(db: Session = Depends(get_db)):
-    invoices = db.query(Invoice).order_by(Invoice.id.desc()).all()
+def get_invoices(
+
+    financial_year: str = Query(...),
+
+    db: Session = Depends(get_db)
+):
+
+    invoices = (
+
+        db.query(Invoice)
+
+        .filter(
+            Invoice.financial_year == financial_year
+        )
+
+        .order_by(
+            Invoice.created_at.desc()
+        )
+
+        .all()
+    )
+
+    return invoices
+
+
+# =====================================================
+# GENERATE INVOICES
+# =====================================================
+
+@router.post("/generate")
+def generate_invoices(
+
+    financial_year: str = Query(...),
+
+    db: Session = Depends(get_db)
+):
+
+    teams = db.query(Team).all()
+
+    generated = []
+
+    for index, team in enumerate(teams):
+
+        existing = (
+
+            db.query(Invoice)
+
+            .filter(
+                Invoice.partner_name == team.name,
+                Invoice.financial_year == financial_year
+            )
+
+            .first()
+        )
+
+        if existing:
+            continue
+
+        amount = 80000
+
+        gst = amount * 0.18
+
+        total = amount + gst
+
+        invoice = Invoice(
+
+            invoice_number=f"INV-{financial_year}-{1000 + index}",
+
+            partner_name=team.name,
+
+            financial_year=financial_year,
+
+            amount=amount,
+
+            gst_amount=gst,
+
+            total_amount=total,
+
+            due_date=datetime.now() + timedelta(days=7),
+
+            payment_status="unpaid"
+        )
+
+        db.add(invoice)
+
+        generated.append({
+
+            "partner_name": team.name,
+
+            "amount": total
+        })
+
+    db.commit()
+
     return {
-        "summary": invoice_summary(invoices),
-        "invoices": [invoice_payload(invoice) for invoice in invoices],
+
+        "status": "success",
+
+        "generated": generated
     }
 
 
-@router.post("/generate-overage/{team_id}")
-def generate_overage_invoice(team_id: int, db: Session = Depends(get_db)):
-    team = db.query(Team).filter(Team.id == team_id).first()
-    if not team:
-        return {"error": "Team not found"}
-    items = overage_items(team, db)
-    if not items:
-        return {"message": "No overage detected", "items": []}
-    invoice = create_invoice(db, team, "overage", items, notes="Auto-generated overage invoice")
-    db.commit()
-    return invoice_payload(invoice)
-
+# =====================================================
+# UPDATE PAYMENT STATUS
+# =====================================================
 
 @router.patch("/{invoice_id}/payment")
-def update_payment(invoice_id: int, payload: dict, db: Session = Depends(get_db)):
-    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+def update_payment_status(
+
+    invoice_id: int,
+
+    status: str,
+
+    notes: str = "",
+
+    db: Session = Depends(get_db)
+):
+
+    invoice = (
+
+        db.query(Invoice)
+
+        .filter(
+            Invoice.id == invoice_id
+        )
+
+        .first()
+    )
+
     if not invoice:
-        return {"error": "Invoice not found"}
-    paid_amount = float(payload.get("paid_amount", invoice.paid_amount or 0))
-    invoice.paid_amount = paid_amount
-    invoice.payment_date = parse_date(payload.get("payment_date")) or date.today()
-    if paid_amount >= (invoice.amount or 0):
-        invoice.status = "Paid"
-    elif paid_amount > 0:
-        invoice.status = "Partially paid"
-    else:
-        invoice.status = "Unpaid"
-    if "notes" in payload:
-        invoice.notes = payload["notes"]
+
+        return {
+
+            "status": "error",
+
+            "message": "Invoice not found"
+        }
+
+    invoice.payment_status = status
+
+    invoice.notes = notes
+
+    if status == "paid":
+
+        invoice.payment_date = datetime.now()
+
     db.commit()
-    return invoice_payload(invoice)
+
+    return {
+
+        "status": "success"
+    }

@@ -70,23 +70,94 @@ export default function UploadReports() {
     }
   };
 
-  const handleUpload = () => {
-    if (!resdexFile || !jobPostingFile) {
-      setValidationError('Both reports must be uploaded simultaneously.');
-      return;
-    }
+  const handleUpload = async () => {
 
-    const hasDateMismatch = Math.random() > 0.7;
+  if (!resdexFile || !jobPostingFile) {
 
-    if (hasDateMismatch) {
-      setValidationError('Report date mismatch. Please upload both reports from 01 Apr 2026 to today.');
-    } else {
-      setValidationError(null);
-      alert('Reports uploaded and validated successfully!');
-      setResdexFile(null);
-      setJobPostingFile(null);
-    }
-  };
+    setValidationError(
+      'Both reports must be uploaded simultaneously.'
+    );
+
+    return;
+  }
+
+  try {
+
+    setValidationError(null);
+
+    const formData = new FormData();
+
+    formData.append(
+      'financial_year',
+      financialYear
+    );
+
+    formData.append(
+      'uploaded_by',
+      localStorage.getItem('username') || 'Kajal'
+    );
+
+    formData.append(
+      'resdex_report',
+      resdexFile
+    );
+
+    formData.append(
+      'job_posting_report',
+      jobPostingFile
+    );
+
+    const response = await fetch(
+
+      'http://127.0.0.1:8000/reports/upload',
+
+      {
+        method: 'POST',
+
+        body: formData
+      }
+    );
+
+    const data = await response.json();
+
+if (response.ok && data.status === 'success') {
+
+  window.alert(
+
+    `Reports uploaded successfully.\n\nTeams created: ${
+      data.created_teams?.length || 0
+    }`
+  );
+
+  setResdexFile(null);
+
+  setJobPostingFile(null);
+
+} else {
+
+  console.error(data);
+
+  setValidationError(
+
+    data.detail ||
+
+    data.message ||
+
+    'Upload failed'
+  );
+}
+
+  } catch (error) {
+
+    console.error(error);
+
+    setValidationError(
+  error instanceof Error
+    ? error.message
+    : 'Upload failed'
+);
+  }
+};
 
   return (
     <div className="p-8">

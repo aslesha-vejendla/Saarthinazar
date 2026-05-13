@@ -1,51 +1,101 @@
-from app.database import engine, SessionLocal
+from app.database import (
+    engine,
+    SessionLocal,
+    Base
+)
+
 from app.models.user import User
+
+from app.utils.security import (
+    hash_password
+)
+
+# IMPORT ALL MODELS
 from app.models.team import Team
-from app.models.invoice import Invoice
-from app.models.topup import TopUp
-from app.models.report_upload import ReportUpload
 from app.models.usage import SubUserUsage
-from app.database import Base
-from app.utils.security import hash_password
+from app.models.invoice import Invoice
+from app.models.report_upload import ReportUpload
+from app.models.financial_year import FinancialYear
+
+
+# =====================================================
+# CREATE TABLES
+# =====================================================
 
 Base.metadata.create_all(bind=engine)
 
-# Bootstrap initial users
 db = SessionLocal()
 
-try:
-    # Check if users already exist
-    kajal = db.query(User).filter(User.username == "kajal").first()
-    rashish = db.query(User).filter(User.username == "rashish").first()
-    
-    if not kajal:
-        kajal = User(
-            username="kajal",
-            password=hash_password("kajal@123"),  # Initial password, user should change on first login
-            role="employee"
+
+def create_user(
+
+    username: str,
+
+    password: str,
+
+    role: str
+
+):
+
+    existing = (
+
+        db.query(User)
+
+        .filter(
+            User.username == username
         )
-        db.add(kajal)
-        print("✓ Created user: Kajal (Employee)")
-    else:
-        print("✓ User Kajal already exists")
-    
-    if not rashish:
-        rashish = User(
-            username="rashish",
-            password=hash_password("rashish@123"),  # Initial password, user should change on first login
-            role="admin"
+
+        .first()
+    )
+
+    if existing:
+
+        print(
+            f"✓ User already exists: {username}"
         )
-        db.add(rashish)
-        print("✓ Created user: Rashish (Admin)")
-    else:
-        print("✓ User Rashish already exists")
-    
+
+        return
+
+    user = User(
+
+        username=username,
+
+        password=hash_password(password),
+
+        role=role
+    )
+
+    db.add(user)
+
     db.commit()
-    print("\n✓ Database initialization complete!")
-    print("\n📋 Initial Credentials:")
-    print("   Kajal (Employee): username=kajal, password=kajal@123")
-    print("   Rashish (Admin): username=rashish, password=rashish@123")
-    print("\n⚠️  Please change these passwords after first login!")
-    
-finally:
-    db.close()
+
+    print(
+        f"✓ Created user: {username}"
+    )
+
+
+# =====================================================
+# CREATE DEFAULT USERS
+# =====================================================
+
+create_user(
+
+    "rashesh",
+
+    "rashesh@123",
+
+    "admin"
+)
+
+create_user(
+
+    "kajal",
+
+    "kajal@123",
+
+    "employee"
+)
+
+print(
+    "\n✓ Database initialized successfully"
+)

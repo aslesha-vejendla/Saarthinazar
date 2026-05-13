@@ -268,12 +268,37 @@ def validate_report_ranges(resdex_range: tuple[date | None, date | None], job_ra
         raise HTTPException(status_code=400, detail=f"Report date mismatch. Please upload both reports from {start.strftime('%d %b %Y')} to today.")
 
 
-def usage_totals(db: Session, team_id: int) -> dict:
-    rows = db.query(SubUserUsage).filter(SubUserUsage.team_id == team_id).all()
+def usage_totals(
+    db: Session,
+    team_id: int,
+    financial_year: str
+):
+
+    rows = (
+
+        db.query(SubUserUsage)
+
+        .filter(
+
+            SubUserUsage.team_id == team_id,
+
+            SubUserUsage.financial_year == financial_year
+
+        )
+
+        .all()
+    )
+
     return {
-        "cv": sum(row.cv_usage or 0 for row in rows),
-        "nvites": sum(row.nvites_usage or 0 for row in rows),
-        "jobs": sum(row.jobs_usage or 0 for row in rows),
+
+        "cv":
+            sum(row.cv_usage or 0 for row in rows),
+
+        "nvites":
+            sum(row.nvites_usage or 0 for row in rows),
+
+        "jobs":
+            sum(row.jobs_usage or 0 for row in rows),
     }
 
 
@@ -311,11 +336,36 @@ def status_for_percent(value: int) -> str:
     return "Safe"
 
 
-def status_for_team(team: Team, db: Session) -> str:
-    usage = usage_totals(db, team.id)
-    limits = team_limits(team, db)
-    return status_for_percent(max(usage_percent(usage[key], limits[key]) for key in INVENTORY_TYPES))
+def status_for_team(
 
+    team: Team,
+
+    db: Session,
+
+    financial_year: str
+
+):
+
+    usage = usage_totals(
+        db,
+        team.id,
+        financial_year
+    )
+
+    limits = team_limits(team, db)
+
+    return status_for_percent(
+
+        max(
+
+            usage_percent(
+                usage[key],
+                limits[key]
+            )
+
+            for key in INVENTORY_TYPES
+        )
+    )
 
 def outstanding_for_team(db: Session, team_id: int) -> float:
     invoices = db.query(Invoice).filter(Invoice.team_id == team_id, Invoice.status != "Paid").all()
@@ -323,11 +373,28 @@ def outstanding_for_team(db: Session, team_id: int) -> float:
 
 
 def team_payload(team: Team, db: Session, include_financial: bool = False) -> dict:
-    usage = usage_totals(db, team.id)
+    usage = usage_totals(
+    db,
+    team.id,
+    financial_year
+)
     topups = topup_totals(db, team.id)
     limits = team_limits(team, db)
     percentages = {key: usage_percent(usage[key], limits[key]) for key in INVENTORY_TYPES}
-    subusers = db.query(SubUserUsage).filter(SubUserUsage.team_id == team.id).order_by(SubUserUsage.name).all()
+    subusers = (
+
+    db.query(SubUserUsage)
+
+    .filter(
+        SubUserUsage.team_id == team.id,
+
+        SubUserUsage.financial_year == financial_year
+    )
+
+    .order_by(SubUserUsage.name)
+
+    .all()
+).filter(SubUserUsage.team_id == team.id).order_by(SubUserUsage.name).all()
     payload = {
         "id": team.id,
         "name": team.name,
@@ -356,7 +423,11 @@ def team_payload(team: Team, db: Session, include_financial: bool = False) -> di
 
 
 def overage_items(team: Team, db: Session) -> list[dict]:
-    usage = usage_totals(db, team.id)
+    usage = usage_totals(
+    db,
+    team.id,
+    financial_year
+)
     limits = team_limits(team, db)
     items = []
     for key in INVENTORY_TYPES:

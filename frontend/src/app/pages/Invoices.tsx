@@ -44,10 +44,49 @@ export default function Invoices() {
           <h1 className="text-3xl mb-2">Invoices & Payments</h1>
           <p className="text-slate-600">Track billing and payment status</p>
         </div>
-        <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
-          <FileText className="w-4 h-4" />
-          Generate Invoice
-        </button>
+        <button
+  onClick={async () => {
+
+    try {
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/invoices/generate",
+        {
+          method: "POST"
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.status === "success") {
+
+        alert(
+          `${data.generated.length} invoices generated successfully`
+        );
+
+        window.location.reload();
+
+      } else {
+
+        alert("Failed to generate invoices");
+      }
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert("Server error while generating invoice");
+    }
+  }}
+
+  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+>
+
+  <FileText className="w-4 h-4" />
+
+  Generate Invoice
+
+</button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

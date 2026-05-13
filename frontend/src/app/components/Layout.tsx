@@ -3,6 +3,8 @@ import {
   Outlet,
   useLocation,
   useNavigate
+  useLocation,
+  useNavigate
 } from "react-router-dom";
 
 import {
@@ -19,9 +21,13 @@ import {
 
 import { useState, useEffect } from "react";
 
+import { useState, useEffect } from "react";
+
 export default function Layout() {
 
   const location = useLocation();
+  const navigate = useNavigate();
+  const [showWelcome, setShowWelcome] = useState(false);
   const navigate = useNavigate();
   const [showWelcome, setShowWelcome] = useState(false);
 
@@ -115,6 +121,15 @@ export default function Layout() {
     }
   }, [location.pathname]);
 
+  // Show welcome banner on dashboard load
+  useEffect(() => {
+    if (location.pathname === "/dashboard") {
+      setShowWelcome(true);
+      const timer = setTimeout(() => setShowWelcome(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname]);
+
   return (
 
     <div className="min-h-screen bg-slate-100">
@@ -126,7 +141,7 @@ export default function Layout() {
             <div>
               <h2 className="text-2xl font-bold">Welcome back, {username}! 👋</h2>
               <p className="text-purple-100 text-sm mt-1">
-                {role === "admin" ? "You have full system access" : "You're logged in as an employee"}
+                {isOwner ? "You have full system access" : "You're logged in as an employee"}
               </p>
             </div>
             <button
@@ -259,6 +274,7 @@ export default function Layout() {
 
                 {/* DROPDOWN MENU */}
 
+                <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                 <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
 
                   <div className="p-4 border-b">

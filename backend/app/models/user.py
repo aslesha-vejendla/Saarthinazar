@@ -13,24 +13,28 @@ class User(Base):
 
     id = Column(
         Integer,
-        primary_key=True
+        primary_key=True,
+        index=True
     )
 
     username = Column(
-        String(100),
-        unique=True
+        String,
+        unique=True,
+        nullable=False
     )
 
     password = Column(
-        String(255)
+        String,
+        nullable=False
     )
 
     role = Column(
-        String(50),
-        default="employee"
+        String,
+        nullable=False
     )
 
-    profile_image = Column(
-        String(255),
-        nullable=True
+    profile_picture = Column(
+        String,
+        nullable=True,
+        default=""
     )

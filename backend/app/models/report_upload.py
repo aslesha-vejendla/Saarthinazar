@@ -1,18 +1,67 @@
-from sqlalchemy import Column, Date, DateTime, Integer, String, Text
-from sqlalchemy.sql import func
+from datetime import datetime
+
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Text
+)
 
 from app.database import Base
 
 
 class ReportUpload(Base):
+
     __tablename__ = "report_uploads"
 
-    id = Column(Integer, primary_key=True, index=True)
-    resdex_file = Column(String(255), nullable=False)
-    job_posting_file = Column(String(255), nullable=False)
-    uploaded_by = Column(String(100), default="Kajal")
-    range_start = Column(Date, nullable=True)
-    range_end = Column(Date, nullable=True)
-    status = Column(String(50), default="success")
-    message = Column(Text, default="")
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    financial_year = Column(
+        String,
+        nullable=False
+    )
+
+    resdex_file = Column(
+        String,
+        nullable=False
+    )
+
+    job_posting_file = Column(
+        String,
+        nullable=False
+    )
+
+    uploaded_by = Column(
+        String,
+        nullable=False
+    )
+
+    status = Column(
+        String,
+        default="success"
+    )
+
+    message = Column(
+        Text,
+        nullable=True
+    )
+
+    range_start = Column(
+        DateTime,
+        nullable=True
+    )
+
+    range_end = Column(
+        DateTime,
+        nullable=True
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )

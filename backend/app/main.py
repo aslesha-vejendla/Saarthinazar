@@ -1,6 +1,11 @@
 from fastapi import FastAPI
+
 from fastapi.middleware.cors import CORSMiddleware
-from app.services.db_bootstrap import ensure_database
+
+
+# =====================================================
+# ROUTES
+# =====================================================
 
 from app.routes import (
     auth,
@@ -15,34 +20,98 @@ from app.routes import (
     templates,
 )
 
-app = FastAPI(title="Naukri Usage Monitor")
+
+# =====================================================
+# FASTAPI APP
+# =====================================================
+
+app = FastAPI(
+
+    title="Naukri Usage Monitor",
+
+    description="""
+    Recruitment Billing & Analytics System
+
+    Features:
+    - Usage monitoring
+    - Team management
+    - Invoice generation
+    - Financial analytics
+    - Report uploads
+    - Top-up management
+    - Alerts & overage tracking
+    """,
+
+    version="1.0.0"
+)
+
+
+# =====================================================
+# CORS
+# =====================================================
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# =====================================================
+# REGISTER ROUTES
+# =====================================================
+
 app.include_router(auth.router)
+
 app.include_router(dashboard.router)
+
 app.include_router(reports.router)
+
 app.include_router(invoices.router)
+
 app.include_router(alerts.router)
+
 app.include_router(topups.router)
+
 app.include_router(financial.router)
+
 app.include_router(financial_years.router)
+
 app.include_router(master_data.router)
+
 app.include_router(templates.router)
 
 
-@app.on_event("startup")
-def startup():
-    ensure_database()
-
+# =====================================================
+# ROOT
+# =====================================================
 
 @app.get("/")
 def home():
+
     return {
-        "message": "Backend Running"
+
+        "message":
+            "Naukri Usage Monitor Backend Running",
+
+        "status":
+            "success"
+    }
+
+
+# =====================================================
+# HEALTH CHECK
+# =====================================================
+
+@app.get("/health")
+def health_check():
+
+    return {
+
+        "status": "healthy"
     }

@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import {
   useNavigate,
-  Link
 } from "react-router-dom";
 
 import {
@@ -162,21 +161,6 @@ export default function Login() {
           </button>
 
         </form>
-
-        <p className="text-center text-sm text-slate-500 mt-6">
-
-          Need an account?
-
-          <Link
-            to="/register"
-            className="text-purple-600 ml-2 font-medium"
-          >
-
-            Register
-
-          </Link>
-
-        </p>
 
       </div>
 
