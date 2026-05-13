@@ -22,6 +22,8 @@ export default function Layout() {
 
   const role =
     localStorage.getItem("role");
+  const isOwner =
+    role === "owner" || role === "admin" || role === "rashesh";
 
   const username =
     localStorage.getItem("username") || "User";
@@ -80,14 +82,14 @@ export default function Layout() {
       path: "/financial",
       label: "Financial Insights",
       icon: TrendingUp,
-      visible: role === "admin"
+      visible: isOwner
     },
 
     {
       path: "/master-data",
       label: "Master Data",
       icon: SettingsIcon,
-      visible: role === "admin"
+      visible: isOwner
     }
 
   ];

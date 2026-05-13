@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileUp, AlertCircle, TrendingUp, Users, FileText, DollarSign } from 'lucide-react';
+import { FileUp, AlertCircle, TrendingUp, Users, FileText, DollarSign, Plus, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const chartData = [
@@ -12,8 +12,52 @@ const chartData = [
 ];
 
 export default function Dashboard() {
-  const [financialYear, setFinancialYear] = useState('2025-2026');
+  const [financialYear, setFinancialYear] = useState('2026-2027');
+  const [financialYears, setFinancialYears] = useState(['2024-2025', '2025-2026', '2026-2027']);
+  const [showYearModal, setShowYearModal] = useState(false);
+  const [newYear, setNewYear] = useState('');
+  const [masterFile, setMasterFile] = useState<File | null>(null);
+  const [yearMessage, setYearMessage] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/financial-years/')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length) {
+          setFinancialYears(data.map((item) => item.label));
+          const active = data.find((item) => item.is_active);
+          if (active) setFinancialYear(active.label);
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const handleAddFinancialYear = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newYear || !masterFile) {
+      setYearMessage('Please enter a financial year and upload the master data file.');
+      return;
+    }
+
+    const body = new FormData();
+    body.append('label', newYear);
+    body.append('uploaded_by', localStorage.getItem('username') || 'Kajal');
+    body.append('master_file', masterFile);
+
+    const response = await fetch('http://127.0.0.1:8000/financial-years/', {
+      method: 'POST',
+      body,
+    });
+    const result = await response.json();
+    setYearMessage(result.message || 'Financial year saved.');
+    if (result.status === 'success') {
+      setFinancialYears((years) => Array.from(new Set([result.financial_year.label, ...years])));
+      setFinancialYear(result.financial_year.label);
+      setNewYear('');
+      setMasterFile(null);
+    }
+  };
 
   return (
     <div className="p-8">
@@ -22,15 +66,24 @@ export default function Dashboard() {
           <h1 className="text-3xl mb-2">Dashboard</h1>
           <p className="text-slate-600">Overview of usage and billing activity</p>
         </div>
-        <select
-          value={financialYear}
-          onChange={(e) => setFinancialYear(e.target.value)}
-          className="px-4 py-2 border border-slate-300 rounded-xl bg-white"
-        >
-          <option value="2024-2025">FY 2024-2025</option>
-          <option value="2025-2026">FY 2025-2026</option>
-          <option value="2026-2027">FY 2026-2027</option>
-        </select>
+        <div className="flex items-center gap-3">
+          <select
+            value={financialYear}
+            onChange={(e) => setFinancialYear(e.target.value)}
+            className="px-4 py-2 border border-slate-300 rounded-xl bg-white"
+          >
+            {financialYears.map((year) => (
+              <option key={year} value={year}>FY {year}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => setShowYearModal(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Financial Year
+          </button>
+        </div>
       </div>
 
       <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-8 flex items-center gap-3">
@@ -194,6 +247,56 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {showYearModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-xl border border-slate-200">
+            <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-medium">Add Financial Year</h2>
+                <p className="text-sm text-slate-600 mt-1">Upload the master data file for teams, licences, and allocations.</p>
+              </div>
+              <button onClick={() => setShowYearModal(false)} className="text-slate-500 hover:text-slate-800">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddFinancialYear} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Financial Year</label>
+                <input
+                  value={newYear}
+                  onChange={(e) => setNewYear(e.target.value)}
+                  placeholder="2027-2028"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Master Data File</label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={(e) => setMasterFile(e.target.files?.[0] || null)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white"
+                />
+                <p className="text-xs text-slate-500 mt-2">Use this for the team master list: team name, licence count, partner type, inventory limits, and pricing.</p>
+              </div>
+              {yearMessage && (
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 text-sm text-purple-900">
+                  {yearMessage}
+                </div>
+              )}
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowYearModal(false)} className="px-4 py-2 border border-slate-300 rounded-lg">
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                  Save Year
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
