@@ -1,5 +1,6 @@
 from sqlalchemy import (
     Column,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -15,7 +16,11 @@ class SubUserUsage(Base):
 
     __tablename__ = "subuser_usages"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     team_id = Column(
         Integer,
@@ -31,8 +36,29 @@ class SubUserUsage(Base):
 
     financial_year = Column(
         String(20),
+        index=True,
+        nullable=False
+    )
+
+    # ==========================================
+    # NEW
+    # ==========================================
+
+    upload_range_start = Column(
+        Date,
+        nullable=True,
         index=True
     )
+
+    upload_range_end = Column(
+        Date,
+        nullable=True,
+        index=True
+    )
+
+    # ==========================================
+    # TEAM INFO
+    # ==========================================
 
     team_name = Column(
         String(255),
@@ -50,6 +76,10 @@ class SubUserUsage(Base):
         nullable=False
     )
 
+    # ==========================================
+    # USAGE
+    # ==========================================
+
     cv_usage = Column(
         Integer,
         default=0
@@ -64,6 +94,10 @@ class SubUserUsage(Base):
         Integer,
         default=0
     )
+
+    # ==========================================
+    # CREATED
+    # ==========================================
 
     created_at = Column(
         DateTime(timezone=True),

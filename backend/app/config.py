@@ -55,10 +55,23 @@ SUPABASE_SERVICE_KEY = os.getenv(
 # DATABASE
 # =====================================================
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///./naukri_usage.db"
-)
+_DB_USER     = os.getenv("DB_USER")
+_DB_PASSWORD = os.getenv("DB_PASSWORD")
+_DB_HOST     = os.getenv("DB_HOST")
+_DB_PORT     = os.getenv("DB_PORT", "5432")
+_DB_NAME     = os.getenv("DB_NAME")
+
+if all([_DB_USER, _DB_PASSWORD, _DB_HOST, _DB_NAME]):
+    DATABASE_URL = (
+        f"postgresql+psycopg2://{_DB_USER}:{_DB_PASSWORD}"
+        f"@{_DB_HOST}:{_DB_PORT}/{_DB_NAME}?sslmode=require"
+    )
+else:
+    # Fallback to SQLite for local dev if no DB vars set
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL",
+        "sqlite:///./naukri_usage.db"
+    )
 
 
 # =====================================================
@@ -79,12 +92,15 @@ DEFAULT_FINANCIAL_YEAR = os.getenv(
     "DEFAULT_FINANCIAL_YEAR",
     "2026-2027"
 )
+
+
 # =====================================================
 # EMAIL (GMAIL SMTP)
 # =====================================================
 
 SMTP_EMAIL = os.getenv("SMTP_EMAIL", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+
 
 # =====================================================
 # WHATSAPP (TWILIO)

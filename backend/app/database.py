@@ -3,6 +3,7 @@ app/database.py
 """
 
 from sqlalchemy import create_engine
+
 from sqlalchemy.orm import (
     DeclarativeBase,
     sessionmaker
@@ -27,7 +28,7 @@ if DATABASE_URL.startswith("sqlite"):
     )
 
 # =====================================================
-# POSTGRES / SUPABASE
+# SUPABASE / POSTGRES
 # =====================================================
 
 else:
@@ -43,6 +44,8 @@ else:
         pool_size=5,
 
         max_overflow=10,
+
+        echo=False,
     )
 
 
@@ -57,11 +60,12 @@ SessionLocal = sessionmaker(
 
 
 class Base(DeclarativeBase):
+
     pass
 
 
 # =====================================================
-# FASTAPI DB DEPENDENCY
+# DB DEPENDENCY
 # =====================================================
 
 def get_db():

@@ -202,9 +202,6 @@ class ReportProcessor:
         # DETECT HEADER ROW
         # ==========================================
 
-        # Resdex → row 1
-        # Job Posting → row 4
-
         header_row = 1
 
         if "job" in filename:
@@ -232,16 +229,12 @@ class ReportProcessor:
 
         if suffix == ".xls":
 
-            # HTML disguised XLS
-
             if self._is_html_file(path):
 
                 return self._read_html_xls(
                     path,
                     header_row=header_row
                 )
-
-            # Real XLS
 
             return pd.read_excel(
                 path,
@@ -317,10 +310,6 @@ class ReportProcessor:
                     nrows=30
                 )
 
-            # ==========================================
-            # SEARCH ALL CELLS
-            # ==========================================
-
             for row_index in range(len(raw)):
 
                 row_values = [
@@ -334,11 +323,6 @@ class ReportProcessor:
 
                     lower_value = value.lower()
 
-                    # ==================================
-                    # CASE 1:
-                    # Entire duration inside same cell
-                    # ==================================
-
                     if (
                         "01-apr" in lower_value
                         and
@@ -346,11 +330,6 @@ class ReportProcessor:
                     ):
 
                         return value
-
-                    # ==================================
-                    # CASE 2:
-                    # Duration label + next cell
-                    # ==================================
 
                     if "duration" in lower_value:
 
@@ -361,10 +340,6 @@ class ReportProcessor:
                             if next_value.strip():
 
                                 return next_value
-
-            # ==========================================
-            # FALLBACK FULL TEXT
-            # ==========================================
 
             text = " ".join(
 
@@ -543,7 +518,7 @@ class ReportProcessor:
             required=False
         )
 
-        return pd.DataFrame({
+        normalized_df = pd.DataFrame({
 
             "email": (
 
@@ -574,6 +549,20 @@ class ReportProcessor:
                 self._clean_numeric(df[nvites_col]),
         })
 
+        # ==========================================
+        # FILTER EMPTY EMAILS
+        # ==========================================
+
+        normalized_df = normalized_df[
+            normalized_df["email"].notna()
+        ]
+
+        normalized_df = normalized_df[
+            normalized_df["email"] != ""
+        ]
+
+        return normalized_df
+
     # =====================================================
     # NORMALIZE JOBS
     # =====================================================
@@ -603,13 +592,7 @@ class ReportProcessor:
             self.JOB_ALIASES
         )
 
-        team_col = self._find_column(
-            df,
-            self.TEAM_ALIASES,
-            required=False
-        )
-
-        return pd.DataFrame({
+        normalized_df = pd.DataFrame({
 
             "email": (
 
@@ -622,20 +605,23 @@ class ReportProcessor:
                 .str.lower()
             ),
 
-            "job_team_name": (
-
-                df[team_col]
-                .astype(str)
-                .str.strip()
-
-                if team_col
-
-                else ""
-            ),
-
             "jobs_usage":
                 self._clean_numeric(df[jobs_col]),
         })
+
+        # ==========================================
+        # FILTER EMPTY EMAILS
+        # ==========================================
+
+        normalized_df = normalized_df[
+            normalized_df["email"].notna()
+        ]
+
+        normalized_df = normalized_df[
+            normalized_df["email"] != ""
+        ]
+
+        return normalized_df
 
     # =====================================================
     # PROCESS REPORTS
@@ -693,6 +679,40 @@ class ReportProcessor:
         )
 
         # ==========================================
+        # REMOVE DUPLICATE EMAILS
+        # ==========================================
+
+        resdex_df = (
+
+            resdex_df
+
+            .groupby("email", as_index=False)
+
+            .agg({
+
+                "name": "first",
+
+                "team_name": "first",
+
+                "cv_usage": "sum",
+
+                "nvites_usage": "sum",
+            })
+        )
+
+        job_df = (
+
+            job_df
+
+            .groupby("email", as_index=False)
+
+            .agg({
+
+                "jobs_usage": "sum",
+            })
+        )
+
+        # ==========================================
         # MERGE
         # ==========================================
 
@@ -708,10 +728,49 @@ class ReportProcessor:
             .replace(0, "")
         )
 
-        merged["team_name"] = merged["team_name"].where(
-            merged["team_name"] != 0,
-            merged["job_team_name"],
+        # ==========================================
+        # CLEAN TEAM NAMES HARDER
+        # ==========================================
+
+        merged["team_name"] = (
+
+            merged["team_name"]
+
+            .fillna("")
+
+            .astype(str)
+
+            .str.lower()
+
+            .str.replace(".", "", regex=False)
+
+            .str.replace(",", "", regex=False)
+
+            .str.replace("  ", " ", regex=False)
+
+            .str.strip()
+
+            .replace("0", "")
+
+            .replace("nan", "")
+
+            .replace("none", "")
         )
+
+        # ==========================================
+        # REMOVE EMPTY TEAM ROWS
+        # ==========================================
+
+        merged = merged[
+
+            ~(
+                (merged["team_name"] == "")
+                &
+                (merged["cv_usage"] == 0)
+                &
+                (merged["nvites_usage"] == 0)
+            )
+        ]
 
         # ==========================================
         # WARNINGS

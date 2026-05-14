@@ -195,66 +195,69 @@ def default_pricing_plan(db: Session) -> PricingPlan | None:
     )
 
 
+from sqlalchemy.exc import IntegrityError
+
+
+def normalize_team_name(name: str) -> str:
+    return (
+        str(name)
+        .lower()
+        .replace(".", "")
+        .replace(",", "")
+        .replace("  ", " ")
+        .strip()
+    )
+
+
 def create_team_from_upload(
-    db: Session,
+    db,
     team_name: str,
-    partner_email: str,
     partner_name: str = "",
+    partner_email: str = "",
     licences: int = 1,
-) -> Team:
+    partner_type: str = "New Partner",
+    join_period: str = "Q1 (Apr-Jun)",
+    licence_fee: float = 80000,
+    cv_limit: int = 3000,
+    nvites_limit: int = 22500,
+    jobs_limit: int = 100,
+):
+    normalized = normalize_team_name(team_name)
 
-    # Clean incoming values
-    team_name = str(team_name).strip()
-    partner_email = str(partner_email).strip()
+    existing_teams = db.query(Team).all()
+    for team in existing_teams:
+        if normalize_team_name(team.name) == normalized:
+            return team
 
-    # Handle invalid/missing team names
-    if not team_name or team_name.lower() in {"0", "nan", "none"}:
-        team_name = f"Unassigned-{partner_email}"
+    try:
+        new_team = Team(
+            name=team_name.strip(),
+            partner_name=partner_name or "",
+            partner_email=partner_email or "",
+            licences=licences,
+            partner_type=partner_type,
+            join_period=join_period,
+            licence_fee=licence_fee,
+            cost_share=0,
+            cv_limit=cv_limit * licences,
+            nvites_limit=nvites_limit * licences,
+            jobs_limit=jobs_limit * licences,
+            is_active=True,
+        )
+        db.add(new_team)
+        db.flush()
+        return new_team
 
-    # Prevent duplicate team creation
-    existing_team = (
-        db.query(Team)
-        .filter(Team.name == team_name)
-        .first()
-    )
-
-    if existing_team:
-        return existing_team
-
-    plan = default_pricing_plan(db)
-
-    team = Team(
-        name=team_name,
-        partner_name=partner_name or team_name,
-        partner_email=partner_email,
-        licences=licences,
-        partner_type=plan.partner_type if plan else "New Partner",
-        join_period=plan.period if plan else "Q1 (Apr-Jun)",
-        licence_fee=(plan.price if plan else 0) * licences,
-        cost_share=0,
-        cv_limit=(plan.cv_limit if plan else 0) * licences,
-        nvites_limit=(plan.nvites_limit if plan else 0) * licences,
-        jobs_limit=(plan.jobs_limit if plan else 0) * licences,
-        is_active=True,
-    )
-
-    db.add(team)
-    db.flush()
-
-    add_audit(
-        db,
-        "system",
-        "auto_create_team_from_upload",
-        "team",
-        team.id,
-        {
-            "team_name": team_name,
-            "partner_email": partner_email,
-            "licences": licences,
-        },
-    )
-
-    return team
+    except IntegrityError:
+        db.rollback()
+        existing_retry = (
+            db.query(Team)
+            .filter(Team.name == team_name.strip())
+            .first()
+        )
+        if existing_retry:
+            return existing_retry
+        raise
 
 
 def validate_report_ranges(
